@@ -2878,12 +2878,12 @@ void MVKPhysicalDevice::initLimits() {
     _properties.limits.maxPerStageResources = (_metalFeatures.maxPerStageBufferCount + _metalFeatures.maxPerStageTextureCount);
     _properties.limits.maxFragmentCombinedOutputResources = _properties.limits.maxPerStageResources;
 
-	_properties.limits.maxDescriptorSetSamplers = (_properties.limits.maxPerStageDescriptorSamplers * 5);
+	_properties.limits.maxDescriptorSetSamplers = isTier2MetalArgumentBuffers() ? 2048 : (_properties.limits.maxPerStageDescriptorSamplers * 5);
 	_properties.limits.maxDescriptorSetUniformBuffers = (_properties.limits.maxPerStageDescriptorUniformBuffers * 5);
 	_properties.limits.maxDescriptorSetUniformBuffersDynamic = (_properties.limits.maxPerStageDescriptorUniformBuffers * 5);
 	_properties.limits.maxDescriptorSetStorageBuffers = (_properties.limits.maxPerStageDescriptorStorageBuffers * 5);
 	_properties.limits.maxDescriptorSetStorageBuffersDynamic = (_properties.limits.maxPerStageDescriptorStorageBuffers * 5);
-	_properties.limits.maxDescriptorSetSampledImages = (_properties.limits.maxPerStageDescriptorSampledImages * 5);
+	_properties.limits.maxDescriptorSetSampledImages = isTier2MetalArgumentBuffers() ? (uint32_t)1e6 : (_properties.limits.maxPerStageDescriptorSampledImages * 5);
 	_properties.limits.maxDescriptorSetStorageImages = (_properties.limits.maxPerStageDescriptorStorageImages * 5);
 	_properties.limits.maxDescriptorSetInputAttachments = (_properties.limits.maxPerStageDescriptorInputAttachments * 5);
 

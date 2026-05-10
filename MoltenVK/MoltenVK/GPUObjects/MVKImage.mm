@@ -2476,6 +2476,10 @@ MVKSampler::MVKSampler(MVKDevice* device, const VkSamplerCreateInfo* pCreateInfo
 		auto mtlDev = getMTLDevice();
 		@synchronized (mtlDev) {
 			_mtlSamplerState = [mtlDev newSamplerStateWithDescriptor: [newMTLSamplerDescriptor(pCreateInfo) autorelease]];
+			if (!_mtlSamplerState) {
+				setConfigurationResult(reportError(VK_ERROR_OUT_OF_DEVICE_MEMORY,
+					"Failed to create MTLSamplerState. Metal argument buffer sampler cap (1024) exceeded."));
+			}
 		}
 	}
 

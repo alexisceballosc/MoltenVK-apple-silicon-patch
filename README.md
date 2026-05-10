@@ -15,6 +15,35 @@ Copyright (c) 2015-2026 [The Brenwill Workshop Ltd.](http://www.brenwill.com)
 ![Build Status](https://github.com/KhronosGroup/MoltenVK/workflows/CI/badge.svg)
 
 
+> ## Unofficial Apple Silicon Patch Fork
+>
+> **This is an unofficial fork of [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK), patched for a specific personal use case. It is NOT maintained, NOT reviewed, and NOT endorsed by Khronos or the upstream maintainers. Do not rely on it for production. For the official, supported MoltenVK, use the upstream repo.**
+>
+> ### Why this fork exists
+>
+> Upstream MoltenVK reports very conservative descriptor-set limits in `VkPhysicalDeviceLimits`, derived from per-stage Metal caps multiplied by the number of shader stages (`* 5`). On *Apple Silicon* (Metal Argument Buffers Tier 2), the real hardware caps are far higher: samplers are bound by Metal's per-encoder cap of 1024, and sampled images are effectively unbounded (millions of descriptors per heap).
+>
+> This causes Vulkan applications that validate against the [minimum required limits in the Vulkan spec](https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceLimits.html) (for example, `maxDescriptorSetSampledImages >= 8192`) to refuse to launch or to crash at descriptor-set creation, even though the underlying GPU can comfortably serve those resources. This patch raises the reported limits on Tier 2 argument buffer hardware so those apps run.
+>
+> ### Files changed
+>
+> - **`MoltenVK/MoltenVK/GPUObjects/MVKDevice.mm`**: when `isTier2MetalArgumentBuffers()` is true, override the reported descriptor-set limits.
+>   - `maxDescriptorSetSamplers` set to `2048` (was `maxPerStageDescriptorSamplers * 5`).
+>   - `maxDescriptorSetSampledImages` set to `1e6` (was `maxPerStageDescriptorSampledImages * 5`).
+>
+>   *Why:* Tier 2 argument buffers on Apple Silicon support orders of magnitude more descriptors than the per-stage `* 5` heuristic suggests. The new values reflect actual Metal limits (1024-sampler per-encoder cap with headroom for two encoders, and effectively unbounded sampled images via heap-backed argument buffers). Apps validating against Vulkan spec minimums now pass.
+>
+> - **`MoltenVK/MoltenVK/GPUObjects/MVKImage.mm`**: in `MVKSampler::initMTLSamplerState`, after `newSamplerStateWithDescriptor:`, check for a nil result and surface a clear `VK_ERROR_OUT_OF_DEVICE_MEMORY` with a message naming the Metal argument-buffer 1024-sampler cap.
+>
+>   *Why:* once `maxDescriptorSetSamplers` is raised, apps may legitimately approach Metal's hard 1024-sampler cap per argument-buffer encoder. A silent nil from Metal previously turned into an opaque crash later; the explicit error makes the failure mode legible.
+>
+> ### Scope and non-goals
+>
+> This patch only adjusts limit reporting and adds one error path. It does not change descriptor-set layout, shader conversion, memory management, or any other subsystem. It is unlikely to be useful on Intel Macs or Tier 1 argument-buffer hardware. The overrides are gated on `isTier2MetalArgumentBuffers()`.
+
+---
+
+
 Table of Contents
 -----------------
 
